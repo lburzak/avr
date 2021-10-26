@@ -8,6 +8,7 @@ static struct PortConfig *config_ptr;
 
 uint8_t read_column(uint8_t index);
 uint8_t get_row_index(uint8_t column_value);
+uint8_t is_not_power_of_2(uint8_t x);
 
 uint8_t keypad_read() {
 	uint8_t column_value;
@@ -20,22 +21,16 @@ uint8_t keypad_read() {
 		column_value = read_column(column_index);
 
 		// Przechodzi do nastepnej kolumny, jezeli zaden przycisk w kolumnie nie jest wcisniety
-		if (column_value >= 0x0f)
+		if (!column_value)
 			continue;
 			
-		// Zwraca kod bledu, jezeli w jednej z poprzednich kolumn zostal wykryty wcisniety przycisk
-		if (keycode > 0)
-			return KEYCODE_ERROR;
-		
-		// Oblicza indeks wiersza w ktorym jest wcisniety przycisk
-		row_index = get_row_index(column_value);
-		
-		// Zwraca kod bledu, jezeli w obecnej kolumnie zostalo wcisnietych wiele przyciskow
-		if (row_index >= KEYPAD_ROWS)
+		// Zwraca kod bledu, jezeli w jednej z poprzednich kolumn zostal wykryty wcisniety przycisk,
+		// lub wiele przyciskow jest wcisnietych w obecnej kolumnie
+		if (keycode > 0 || is_not_power_of_2(column_value))
 			return KEYCODE_ERROR;
 		
 		// Zapisuje kod odczytanego przycisku
-		keycode = row_index * 4 + column_index + 1;
+		keycode = get_row_index(column_value) * KEYPAD_ROWS + column_index + 1;
 	}
 	
 	return keycode;
@@ -49,7 +44,7 @@ void keypad_set_config(struct PortConfig *new_config_ptr) {
 	config_ptr = new_config_ptr;
 	
 	// Ustawia pierwsza tetrade portu klawiatury na wejscie
-	*config_ptr->DDR = 0xf0;
+	config_ptr->DDR = 0xf0;
 }
 
 /*
@@ -60,20 +55,26 @@ uint8_t read_column(uint8_t index) {
 	*config_ptr->PORT = ~(1 << (index + 4));
 	
 	// Zwraca wartosc danej kolumny
-	return *config_ptr->PIN & 0x0f;
+	return ~*config_ptr->PIN & 0x0f;
 }
 
 /*
 Zwraca indeks wiersza w ktorym jest wcisniety przycisk.
-Jezeli zostalo wcisniete wiele przyciskow, zwraca -1.
 */
 uint8_t get_row_index(uint8_t column_value) {
-	switch (column_value) {
-		case 0b00001110: return 0;
-		case 0b00001101: return 1;
-		case 0b00001011: return 2;
-		case 0b00000111: return 3;
-		default:
-			return -1;
+	uint8_t i = 0;
+	
+	while (column_value > 1) {
+		column_value >>= 1;
+		i++;
 	}
+		
+	return i;
+}
+
+/*
+Sprawdza czy wartosc nie jest potega liczby 2
+*/
+uint8_t is_not_power_of_2(uint8_t x) {
+	return (x != 1) && (x & (x - 1));
 }
