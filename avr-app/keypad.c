@@ -12,7 +12,6 @@ uint8_t is_not_power_of_2(uint8_t x);
 
 uint8_t keypad_read() {
 	uint8_t column_value;
-	uint8_t row_index;
 	uint8_t keycode = 0;
 	
 	// Iteruje po indeksach kolumn
@@ -24,8 +23,9 @@ uint8_t keypad_read() {
 		if (!column_value)
 			continue;
 			
-		// Zwraca kod bledu, jezeli w jednej z poprzednich kolumn zostal wykryty wcisniety przycisk,
-		// lub wiele przyciskow jest wcisnietych w obecnej kolumnie
+		// Zwraca kod bledu, jezeli
+		//     a. w jednej z poprzednich kolumn zostal wykryty wcisniety przycisk,
+		//     b. wiele przyciskow jest wcisnietych w obecnej kolumnie
 		if (keycode > 0 || is_not_power_of_2(column_value))
 			return KEYCODE_ERROR;
 		
@@ -44,11 +44,12 @@ void keypad_set_config(struct PortConfig *new_config_ptr) {
 	config_ptr = new_config_ptr;
 	
 	// Ustawia pierwsza tetrade portu klawiatury na wejscie
-	config_ptr->DDR = 0xf0;
+	*config_ptr->DDR = 0xf0;
 }
 
 /*
 Zwraca wartosc kolumny o podanym indeksie.
+Bit ustawiony oznacza stan aktywny w danym wierszu.
 */
 uint8_t read_column(uint8_t index) {
 	// Ustawia klawiature w tryb odczytu danej kolumny
@@ -60,6 +61,9 @@ uint8_t read_column(uint8_t index) {
 
 /*
 Zwraca indeks wiersza w ktorym jest wcisniety przycisk.
+
+Algorytm przesuwa bity dopoki najmlodszy ustawiony bit nie stanie sie najmlodszym bitem.
+Wynik bedzie poprawny tylko wtedy, gdy w kolumnie jest wcisniety dokladnie jeden przycisk.
 */
 uint8_t get_row_index(uint8_t column_value) {
 	uint8_t i = 0;
