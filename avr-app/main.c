@@ -6,7 +6,6 @@ int main(void)
 {	
 	// Ustawia port ledow na wejscie
 	DDRB = 0xff;
-	PORTA = 0xf0;
 	
 	// Tworzy strukture przechowujaca konfiguracje portu klawiatury
 	struct PortConfig config = {
