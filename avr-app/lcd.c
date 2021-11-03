@@ -2,15 +2,10 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <stdbool.h>
+#include "port_config.h"
 
-#define LCD_DDR DDRD
-#define LCD_PORT PORTD
 #define RS 1
 #define E 0
-#define LCD_DB4 4
-#define LCD_DB5 5
-#define LCD_DB6 6
-#define LCD_DB7 7
 
 #define CMD_CLEAR				1 << 0
 #define CMD_ENTRY_MODE_SET		1 << 2
@@ -18,71 +13,46 @@
 #define CMD_FUNCTION_SET		1 << 5
 #define CMD_SET_DDRAM			1 << 7
 
-#define FLAG_FORWARD_SHIFT		1 << 1
-#define FLAG_DISPLAY_SHIFT		1 << 0
+enum EntryMode {
+	FORWARD_SHIFT = 1 << 1,
+	DISPLAY_SHIFT = 1 << 0
+};
 
-#define FLAG_8_BIT_MODE			1 << 4
-#define FLAG_TWO_ROWS			1 << 3
-#define FLAG_WIDE_CHARACTERS	1 << 2
+enum FunctionSet {
+	EIGHT_BIT_MODE = 1 << 4,
+	TWO_ROWS = 1 << 3,
+	WIDE_CHARACTERS = 1 << 2	
+};
 
-#define FLAG_ENABLE_DISPLAY		1 << 2
-#define FLAG_SHOW_CURSOR		1 << 1
-#define FLAG_BLINK_CURSOR		1 << 0
+enum DisplayControl {
+	ENABLE_DISPLAY = 1 << 2,
+	SHOW_CURSOR = 1 << 1,
+	BLINK_CURSOR = 1 << 0
+};
 
-void lcd_send_nibble(uint8_t byte) {
-	// Aktywuje przesyl danych
-	LCD_PORT |= 1 << E;
+static struct PortConfig *config_ptr;
 
-	// Ustawia dane w porcie
-	LCD_PORT = byte | (LCD_PORT & 0x0F);
-
-	// Zatwierdza przesyl danych
-	LCD_PORT &= ~(1 << E);
-}
-
-/** Przesyla bajt */
-void lcd_send(uint8_t byte) {
-	// Przesyla starszy polbajt
-	lcd_send_nibble(byte & 0xF0);
-
-	// Odczekuje jeden cykl
-	asm volatile("nop");
-
-	// Przesyla mlodszy polbajt
-	lcd_send_nibble((byte & 0x0F) << 4);
-
-	_delay_us(50);
-}
-
-void lcd_cmd(uint8_t command) {
-	// Przelacza LCD w tryb komend
-	LCD_PORT &= ~(1 << RS);
-
-	// Przesyla wskazany bajt komendy
-	lcd_send(command);
-
-	// Przelacza LCD w tryb danych
-	LCD_PORT |= 1 << RS;
-
-	_delay_ms(5);
-}
+void lcd_set_config(struct PortConfig *config);
+void lcd_send_nibble(uint8_t byte);
+void lcd_send(uint8_t byte);
+void lcd_cmd(uint8_t command);
 
 void lcd_init() {
 	// Ustawia wszystkie linie na wyjscie
-	LCD_DDR = (0xF0) | (1 << RS) | (1 << E);
-	LCD_PORT = 0;
+	*config_ptr->DDR = (0xF0) | (1 << RS) | (1 << E);
+	*config_ptr->PORT = 0;
 
 	// Ustawia tryb 4-bitowy
 	lcd_cmd(0x02);
 
 	// Ustawia parametry wyswietlania
-	lcd_cmd(CMD_FUNCTION_SET | FLAG_TWO_ROWS);
+	lcd_cmd(CMD_FUNCTION_SET | TWO_ROWS);
 
 	// Ustawia tryb pracy wyswietlacza
-	lcd_cmd(CMD_ENTRY_MODE_SET | FLAG_FORWARD_SHIFT);
+	lcd_cmd(CMD_ENTRY_MODE_SET | FORWARD_SHIFT);
 
 	// Ustawia stan wyswietlacza
-	lcd_cmd(CMD_DISPLAY_CONTROL | FLAG_ENABLE_DISPLAY);
+	lcd_cmd(CMD_DISPLAY_CONTROL | ENABLE_DISPLAY);
 	
 	// Czysci LCD
 	lcd_cmd(CMD_CLEAR);
@@ -107,4 +77,50 @@ void lcd_write(char *chars) {
 
 void lcd_clear() {
 	lcd_cmd(CMD_CLEAR);
+}
+
+void lcd_send_nibble(uint8_t byte) {
+	// Aktywuje przesyl danych
+	*config_ptr->PORT |= 1 << E;
+
+	// Ustawia dane w porcie
+	*config_ptr->PORT = byte | (*config_ptr->PORT & 0x0F);
+
+	// Zatwierdza przesyl danych
+	*config_ptr->PORT &= ~(1 << E);
+}
+
+/** Przesyla bajt */
+void lcd_send(uint8_t byte) {
+	// Przesyla starszy polbajt
+	lcd_send_nibble(byte & 0xF0);
+
+	// Odczekuje jeden cykl
+	asm volatile("nop");
+
+	// Przesyla mlodszy polbajt
+	lcd_send_nibble((byte & 0x0F) << 4);
+
+	_delay_us(50);
+}
+
+void lcd_cmd(uint8_t command) {
+	// Przelacza LCD w tryb komend
+	*config_ptr->PORT &= ~(1 << RS);
+
+	// Przesyla wskazany bajt komendy
+	lcd_send(command);
+
+	// Przelacza LCD w tryb danych
+	*config_ptr->PORT |= 1 << RS;
+
+	_delay_ms(5);
+}
+
+void lcd_set_config(struct PortConfig *new_config_ptr) {
+	// Zmienia wskaznik konfiguracji na okreslony w parametrze
+	config_ptr = new_config_ptr;
+	
+	// Ustawia pierwsza tetrade portu klawiatury na wejscie
+	*config_ptr->DDR = 0xf0;
 }
