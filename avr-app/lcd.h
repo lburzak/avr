@@ -14,4 +14,8 @@ void lcd_write(char *chars);
 
 void lcd_clear();
 
+void lcd_number(uint8_t num);
+
+void lcd_home();
+
 #endif /* LCD_H_ */

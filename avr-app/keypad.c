@@ -12,6 +12,7 @@ uint8_t is_not_power_of_2(uint8_t x);
 
 uint8_t keypad_read() {
 	uint8_t column_value;
+	uint8_t row_index;
 	uint8_t keycode = 0;
 	
 	// Iteruje po indeksach kolumn
@@ -26,11 +27,19 @@ uint8_t keypad_read() {
 		// Zwraca kod bledu, jezeli
 		//     a. w jednej z poprzednich kolumn zostal wykryty wcisniety przycisk,
 		//     b. wiele przyciskow jest wcisnietych w obecnej kolumnie
-		if (keycode > 0 || is_not_power_of_2(column_value))
+		if (keycode > 0)
 			return KEYCODE_ERROR;
+			
+		switch (column_value) {
+			case 0b00000001: row_index = 0; break;
+			case 0b00000010: row_index = 1; break;
+			case 0b00000100: row_index = 2; break;
+			case 0b00001000: row_index = 3; break;
+			default: return KEYCODE_ERROR;
+		}
 		
 		// Zapisuje kod odczytanego przycisku
-		keycode = get_row_index(column_value) * KEYPAD_ROWS + column_index + 1;
+		keycode = row_index * KEYPAD_ROWS + column_index + 1;
 	}
 	
 	return keycode;

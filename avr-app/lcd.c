@@ -8,6 +8,7 @@
 #define E 0
 
 #define CMD_CLEAR				1 << 0
+#define CMD_HOME				1 << 1
 #define CMD_ENTRY_MODE_SET		1 << 2
 #define CMD_DISPLAY_CONTROL		1 << 3
 #define CMD_FUNCTION_SET		1 << 5
@@ -58,16 +59,19 @@ void lcd_init() {
 	lcd_cmd(CMD_CLEAR);
 }
 
+static volatile uint8_t cursor_y = 0;
+
 void lcd_move_cursor(uint8_t x, uint8_t y) {
 	// Przenosi kursor w wyznaczone miejsce
 	lcd_cmd(CMD_SET_DDRAM | (x << 6) | y );
+	cursor_y = y;
 }
 
 void lcd_write(char *chars) {
 	// Iteruje po znakach we wskazanym lancuchu
-	for (uint8_t i = 0; chars[i]; i++) {
+	for (uint8_t i = 0; chars[i]; i++, cursor_y++) {
 		// Jezeli brakuje miejsca w linii, przechodzi do nastepnej
-		if (i==16)
+		if (cursor_y == 16)
 			lcd_move_cursor(1,0);
 
 		// Wypisuje znak
@@ -123,4 +127,22 @@ void lcd_set_config(struct PortConfig *new_config_ptr) {
 	
 	// Ustawia pierwsza tetrade portu klawiatury na wejscie
 	*config_ptr->DDR = 0xf0;
+}
+
+/** Wypisuje liczbe z zakresu 0-19 */
+void lcd_number(uint8_t num) {
+	if (num > 19)
+		return lcd_write("xx");
+	
+	if (num > 9) {
+		lcd_send(num / 10 + '0');
+		lcd_send(num % 10 + '0');
+	} else {
+		lcd_send(num + '0');
+		lcd_send(' ');
+	}
+}
+
+void lcd_home() {
+	lcd_cmd(CMD_HOME);
 }
