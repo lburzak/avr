@@ -18,4 +18,6 @@ void lcd_number(uint8_t num);
 
 void lcd_home();
 
+void lcd_clear_from(uint8_t x, uint8_t y);
+
 #endif /* LCD_H_ */

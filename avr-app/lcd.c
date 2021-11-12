@@ -143,6 +143,28 @@ void lcd_number(uint8_t num) {
 	}
 }
 
+void lcd_clear_line_from(uint8_t y) {
+	while (y < 16) {
+		lcd_send(' ');
+		y++;
+	}
+}
+
+void lcd_clear_from(uint8_t x, uint8_t y) {
+	uint8_t initial_y = cursor_y;
+	
+	lcd_move_cursor(x, y);
+	lcd_clear_line_from(y);
+		
+	if (x == 0) {
+		lcd_move_cursor(1, 0);
+		y = 0;
+		lcd_clear_line_from(0);
+	}
+	
+	cursor_y = initial_y;
+}
+
 void lcd_home() {
 	lcd_cmd(CMD_HOME);
 }
