@@ -18,7 +18,7 @@ void init_ad2() {
 	PORTB = 0xFF;
 	// Ustawia prescaler zbocza opadajacego, tryb NORMAL
 	TCCR0 |= (1 << CS02) | (1 << CS01);
-	// Ustawia prescaler zbocza opadajacego, tryb NORMAL
+	// Ustawia prescaler zbocza narastajacego, tryb NORMAL
 	// TCCR0 |= (1 << CS02) | (1 << CS01) | (1 << CS00);
 	TCNT0 = 240;
 }
