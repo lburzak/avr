@@ -13,8 +13,8 @@ int main() {
 }
 
 void init_ad3() {
-	DDRA = 0xFF;
-	PORTA = 0xFF;
+	DDRA = 0xff;
+	PORTA = 0x00;
 	
 	// Ustawia prescaler w tryb 1/1024
 	TCCR0 |= (1 << CS02) | (1 << CS00);
@@ -41,17 +41,17 @@ void run_ad3() {
 		await_overflow();
 		
 		// Zmienia stan LEDów
-		PORTA ^= 0xff;
+		PORTA = ~PORTA;
 	}
 }
 
 void await_overflow() {
-	// Wstrzymuje program dopoki flaga przepelnienia nie jest ustawiona
+	// Wstrzymuje program dopoki nie wykryto przepelnienia
 	while (!(TIFR & (1 << OCF0)));
 	
 	// Zdejmuje flage przepelnienia
 	TIFR |= (1 << OCF0);
 	
-	// Ustawia licznik
+	// Resetuje licznik
 	TCNT0 = 0;
 }
