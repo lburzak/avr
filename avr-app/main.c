@@ -1,47 +1,57 @@
-#define F_CPU 1000000
-#include "lcd.h"
-#include "keypad.h"
 #include <avr/io.h>
+#define F_CPU 1000000L
 #include <util/delay.h>
-#include <stdio.h>
 
-int main(void) {
-	// Konfiguruje LCD na porcie D
-	struct PortConfig lcd_config = {
-		.DDR = &DDRD,
-		.PIN = &PIND,
-		.PORT = &PORTD
-	};
+void delay_10ms();
+void delay_1s();
+void init_ad1();
+void run_ad1();
+
+int main() {
+	run_ad1();
 	
-	lcd_set_config(&lcd_config);
+	return 0;
+}
+
+void init_ad1() {
+	DDRA = 0xFF;
+	PORTA = 0x00;
 	
-	// Konfiguruje klawiature na porcie A
-	struct PortConfig keypad_config = {
-		.DDR = &DDRA,
-		.PIN = &PINA,
-		.PORT = &PORTA
-	};
+	// Ustawia prescaler w tryb 1/256
+	TCCR0 |= (1 << CS02);
 	
-	keypad_set_config(&keypad_config);
+	// Ustawia tryb CTC
+	TCCR0 |= (1 << WGM01);
 	
-	DDRA = 0xff;
+	// Ustawia maksymalna wartosc licznika
+	OCR0 = 0.01 * F_CPU / 256 - 1;
 	
-	// Inicializuje klawiature
-	lcd_init();
+	// Resetuje licznik
+	TCNT0 = 0;
+}
+
+void run_ad1() {
+	init_ad1();
 	
-	// Wypisuje imie i nazwisko na pozycji x=0, y=12
-	lcd_move_cursor(0, 12);
-	lcd_write("Lukasz Burzak");
-	
-	// Wypisuje wartosci odpowiadajace naciskanym przyciskom
-	uint8_t value;
-	while (1) {
-		lcd_home();
-		value = keypad_read();
-		
-		_delay_ms(1);
-		
-		lcd_number(value);
+	while(1) {
+		// Opoznia iteracje o 1 sekunde
+		delay_1s();
+		// Przelacza LED
+		PORTA ^= (1 << PA0);
 	}
 }
 
+void delay_10ms() {
+	while (!(TIFR & (1 << OCF0)));
+	
+	// Zdejmuje flage przepelnienia
+	TIFR |= (1 << OCF0);
+	
+	// Resetuje licznik
+	TCNT0 = 0;
+}
+
+void delay_1s() {
+	for (uint8_t i = 0; i < 100; i++)
+		delay_10ms();
+}
