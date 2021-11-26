@@ -7,6 +7,7 @@
 #define RS 1
 #define E 0
 
+// Ponizej zdefiniowane sa wartosci odpowiadajace poszczegolnym instrukcjom LCD
 #define CMD_CLEAR				1 << 0
 #define CMD_HOME				1 << 1
 #define CMD_ENTRY_MODE_SET		1 << 2
@@ -14,6 +15,8 @@
 #define CMD_FUNCTION_SET		1 << 5
 #define CMD_SET_DDRAM			1 << 7
 
+
+// Ponizej zdefiniowane sa pozycje bitow odopowiadajacych poszczegolnym ustawieniom LCD
 enum EntryMode {
 	FORWARD_SHIFT = 1 << 1,
 	DISPLAY_SHIFT = 1 << 0
@@ -132,12 +135,15 @@ void lcd_set_config(struct PortConfig *new_config_ptr) {
 /** Wypisuje liczbe z zakresu 0-19 */
 void lcd_number(uint8_t num) {
 	if (num > 19)
+		// Wypisuje dwa znaki x jezeli zostala wybrana liczba spoza zakresu
 		return lcd_write("xx");
 	
 	if (num > 9) {
+		// Jezeli liczba jest dwucyfrowa, wypisuje najpierw liczbe dziesiatek, potem jednosci
 		lcd_send(num / 10 + '0');
 		lcd_send(num % 10 + '0');
 	} else {
+		// W przeciwnym razie wypisuje cala liczbe
 		lcd_send(num + '0');
 		lcd_send(' ');
 	}
@@ -151,17 +157,23 @@ void lcd_clear_line_from(uint8_t y) {
 }
 
 void lcd_clear_from(uint8_t x, uint8_t y) {
+	// Zapisuje poprzednia pozycje kursora
 	uint8_t initial_y = cursor_y;
 	
+	// Przenosi kursor na wybrana pozycje
 	lcd_move_cursor(x, y);
+	
+	// Czysci znaki od wybranej pozycji
 	lcd_clear_line_from(y);
 		
 	if (x == 0) {
+		// Jezeli wybrana pozycja jest w pierwszym wierszu, czysci rowniez caly drugi wiersz
 		lcd_move_cursor(1, 0);
-		y = 0;
 		lcd_clear_line_from(0);
 	}
 	
+	// Przywraca poprzednia pozycje kursora
+	lcd_move_cursor(x, initial_y);
 	cursor_y = initial_y;
 }
 
