@@ -4,7 +4,8 @@
 
 // Okresla stan licznika, przy ktorym powinno dojsc do zapalenia LEDa
 // Dla odmierzenia 1 s nale¿y ustawiæ wartoœæ 10.
-const uint8_t COUNTER_TOP = 1;
+const uint8_t COUNTER_TOP = 10;
+
 // Licznik przerwañ CTC
 volatile uint8_t counter = 0;
 
@@ -23,16 +24,23 @@ ISR(TIMER0_COMP_vect) {
 
 int main(void) {
 	DDRA = 1 << PA0;
+	
 	// Ustawia Timer 0 w tryb CTC
 	TCCR0 |= (1 << WGM01) | (0 << WGM00);
+	
 	// Ustawia preskaler 1024
 	TCCR0 |= (1 << CS02) | (1 << CS00);
+	
 	// Ustawia liczbe impulsow, po ktorej nastepuje przerwanie
 	// Przerwanie ma wystepowac po 0.1 s
-	OCR0 = F_CPU / 1024 * 0.1 - 1;// Resetuje stan licznika
+	OCR0 = F_CPU / 1024 * 0.1 - 1;
+	
+	// Resetuje stan licznika
 	TCNT0 = 0;
+	
 	// Aktywuje przerwania Timera 0 w trybie CTC
 	TIMSK |= (1 << OCIE0);
+	
 	// Aktywuje obsluge przerwan
 	sei();
 	while (1);
