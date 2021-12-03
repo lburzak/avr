@@ -1,57 +1,52 @@
 #include <avr/io.h>
-#define F_CPU 1000000L
-#include <util/delay.h>
+#include <avr/interrupt.h>
 
-void delay_10ms();
-void delay_1s();
-void init_ad1();
-void run_ad1();
-
-int main() {
-	run_ad1();
-	
-	return 0;
+/* Obsluguje przerwanie INT0 */
+ISR(INT0_vect) {
+	PORTA ^= 1 << PA0;
 }
 
-void init_ad1() {
-	DDRA = 0xFF;
-	PORTA = 0x00;
-	
-	// Ustawia prescaler w tryb 1/256
-	TCCR0 |= (1 << CS02);
-	
-	// Ustawia tryb CTC
-	TCCR0 |= (1 << WGM01);
-	
-	// Ustawia maksymalna wartosc licznika
-	OCR0 = 0.01 * F_CPU / 256 - 1;
-	
-	// Resetuje licznik
-	TCNT0 = 0;
+/* Obsluguje przerwanie INT2 */
+ISR(INT2_vect) {
+	PORTA ^= 1 << PA2;
 }
 
-void run_ad1() {
-	init_ad1();
-	
-	while(1) {
-		// Opoznia iteracje o 1 sekunde
-		delay_1s();
-		// Przelacza LED
-		PORTA ^= (1 << PA0);
-	}
+/* Przyjmuje wartosc MCUCR i zwraca z ustawionym
+wyzwalaniem INT0 na zboczach opadajaych */
+uint8_t INT0_falling(uint8_t bits) {
+	bits &= ~(1 << ISC00);
+	bits |= 1 << ISC01;
+	return bits;
 }
 
-void delay_10ms() {
-	while (!(TIFR & (1 << OCF0)));
-	
-	// Zdejmuje flage przepelnienia
-	TIFR |= (1 << OCF0);
-	
-	// Resetuje licznik
-	TCNT0 = 0;
+/* Przyjmuje wartosc MCUCR i zwraca z ustawionym
+wyzwalaniem INT0 na zboczach narastajacych */
+uint8_t INT0_raising(uint8_t bits) {
+	return bits | 1 << ISC00 | 1 << ISC01;
 }
 
-void delay_1s() {
-	for (uint8_t i = 0; i < 100; i++)
-		delay_10ms();
+int main(void) {
+	DDRA = 1 << PA0 | 1 << PA2;
+	
+	PORTB = 1 << PB2;
+	PORTD = 1 << PD2;
+	
+	cli();
+	
+	// Ustawia wyzwalanie INT0 INT2 na zboczach narastajacych
+	MCUCR = INT0_raising(MCUCR);
+	MCUCSR |= 1 << ISC2;
+	
+	// Ustawia wyzwalanie INT0 INT2 na zboczach opadajacych
+	// MCUCR = INT0_falling(MCUCR);
+	// MCUCSR &= 0 << ISC2;
+	
+	// Aktywuje przerwania INT0 INT2
+	GICR |= 1 << INT0 | 1 << INT2;
+	GIFR |= 1 << INT0 | 1 << INT2;
+	
+	// Aktywuje obsluge przerwan
+	sei();
+	
+	while (1);
 }
